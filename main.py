@@ -6,20 +6,28 @@ from db.models import Race, Skill, Player, Guild
 
 
 def main() -> None:
+
     with open("players.json", "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    for player in data:
-        race_info = player.get("race")
+    for nickname, player_data in data.items():
+
+        race_info = player_data.get("race")
+
+        if not isinstance(race_info, dict) or "name" not in race_info:
+            continue
+
         race_obj, _ = (
             Race.objects.get_or_create(
                 name=race_info["name"],
                 defaults={"description": race_info.get("description", "")})
         )
 
-        guild_info = player.get("guild")
+        guild_info = player_data.get("guild")
 
         if guild_info is None:
+            guild_obj = None
+        elif not isinstance(guild_info, dict) or "name" not in guild_info:
             guild_obj = None
         else:
             guild_obj, _ = (
@@ -32,23 +40,23 @@ def main() -> None:
 
         player_obj, created = (
             Player.objects.get_or_create(
-                nickname=player["nickname"],
-                defaults={"email": player.get("email", ""),
-                          "bio": player.get("bio", ""),
+                nickname=nickname,
+                defaults={"email": player_data.get("email", ""),
+                          "bio": player_data.get("bio", ""),
                           "race": race_obj,
                           "guild": guild_obj})
         )
 
         if not created:
-            email = player.get("email")
+            email = player_data.get("email")
             if email is not None:
                 player_obj.email = email
-            bio = player.get("bio")
+            bio = player_data.get("bio")
             if bio is not None:
                 player_obj.bio = bio
-            if player.get("race") is not None:
+            if player_data.get("race") is not None:
                 player_obj.race = race_obj
-            if player.get("guild") is not None:
+            if player_data.get("guild") is not None:
                 player_obj.guild = guild_obj
             player_obj.save()
 
